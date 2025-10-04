@@ -1,0 +1,26 @@
+# Core Flask dependencies
+Flask==2.3.3
+
+# System monitoring
+psutil==5.9.5
+
+# HTTP requests
+requests==2.31.0
+
+# Async support
+eventlet==0.33.3
+
+# Additional dependencies for production
+python-socketio==5.9.0
+python-engineio==4.7.1
+bidict==0.22.1
+
+# Optional: For better ML model support
+scikit-learn==1.3.0
+
+# Optional: For enhanced security features
+cryptography==41.0.4
+werkzeug==2.3.7
+
+# Note: Built-in modules (sqlite3, os, datetime, threading, re, ipaddress) 
+# are not included as they come with Python standard library

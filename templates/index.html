@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIEM Dashboard</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Socket.io -->
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <!-- Navbar -->
+    <nav class="bg-gray-800 text-white">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a class="text-xl font-semibold" href="#">🛡️ AI-Driven SIEM Dashboard</a>
+                <div class="flex space-x-4">
+                    <span class="text-sm">Real-time Security Monitoring</span>
+                    <div id="connection-status" class="text-sm">
+                        <span class="inline-block w-2 h-2 bg-green-500 rounded-full"></span> Connected
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- System Information -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h5 class="text-xl font-semibold mb-4">System Information</h5>
+                <ul id="system-info" class="space-y-2">
+                    <!-- Dynamic content from fetchSystemInfo() -->
+                </ul>
+            </div>
+
+            <!-- System Metrics Charts -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h5 class="text-xl font-semibold mb-4">System Metrics</h5>
+                <canvas id="cpuChart" height="100"></canvas>
+                <div class="grid grid-cols-2 gap-4 mt-6 justify-items-center">
+                    <canvas id="memoryChart" width="352" height="200" style="box-sizing: border-box; height: 200px;"></canvas>
+                    <canvas id="diskChart" width="352" height="200" style="box-sizing: border-box; height: 200px;"></canvas>
+                </div>
+            </div>
+
+            <!-- AI Chat -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h5 class="text-xl font-semibold mb-4">🤖 AI Security Assistant</h5>
+                <div class="ai-chat-box h-64 overflow-y-auto bg-gray-50 p-4 rounded-md" id="chat-box">
+                    <div class="text-gray-500">AI Assistant ready to help with security analysis...</div>
+                </div>
+                <div class="mt-4">
+                    <input type="text" class="w-full border border-gray-300 rounded-md p-2" id="chat-input" placeholder="Ask about system security, threats, or analysis..." onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mt-2 rounded-md" onclick="sendMessage()">Send Message</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Logs from different sources -->
+        <div class="bg-white shadow-md rounded-lg p-6 mt-6">
+            <h5 class="text-xl font-semibold mb-4">📋 Security Event Logs</h5>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="border-b">
+                        <tr>
+                            <th class="px-4 py-2">Source</th>
+                            <th class="px-4 py-2">Time</th>
+                            <th class="px-4 py-2">Message</th>
+                            <th class="px-4 py-2">Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="event-logs">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <!-- Network Packets -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h5 class="text-xl font-semibold mb-4">🌐 Network Traffic Analysis</h5>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="border-b">
+                            <tr>
+                                <th class="px-4 py-2">IP Address</th>
+                                <th class="px-4 py-2">Location</th>
+                                <th class="px-4 py-2">Details</th>
+                                <th class="px-4 py-2">Threat Status</th>
+                                <th class="px-4 py-2">Attacks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="network-requests">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination buttons -->
+                <div class="flex justify-between mt-4">
+                    <button class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md" id="network-prev">Previous</button>
+                    <button class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md" id="network-next">Next</button>
+                </div>
+            </div>
+
+            <!-- System Logs -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h5 class="text-xl font-semibold mb-4">📝 System Logs</h5>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="border-b">
+                            <tr>
+                                <th class="px-4 py-2">Time</th>
+                                <th class="px-4 py-2">Log Entry</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-list">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination buttons -->
+                <div class="flex justify-between mt-4">
+                    <button class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md" id="logs-prev">Previous</button>
+                    <button class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md" id="logs-next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js Metrics Update -->
+    <script>
+        const cpuChartCtx = document.getElementById('cpuChart').getContext('2d');
+        const memoryChartCtx = document.getElementById('memoryChart').getContext('2d');
+        const diskChartCtx = document.getElementById('diskChart').getContext('2d');
+
+        // CPU Chart as line chart
+        const cpuChart = new Chart(cpuChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{ 
+                    label: 'CPU Usage (%)', 
+                    data: [], 
+                    borderColor: 'rgb(75, 192, 192)', 
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1 
+                }]
+            },
+            options: { 
+                responsive: true,
+                scales: { 
+                    y: { beginAtZero: true, max: 100 } 
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+
+        // Memory Chart as doughnut
+        const memoryChart = new Chart(memoryChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [0, 100], // Initial values
+                    backgroundColor: ['rgb(54, 162, 235)', 'rgb(200, 200, 200)'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + '%';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+
+        // Disk Chart as doughnut
+        const diskChart = new Chart(diskChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [0, 100], // Initial values
+                    backgroundColor: ['rgb(255, 99, 132)', 'rgb(200, 200, 200)'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + '%';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+
+        function updateCharts(cpu, memory, disk) {
+            const timeLabel = new Date().toLocaleTimeString();
+
+            // Update CPU Chart
+            cpuChart.data.labels.push(timeLabel);
+            cpuChart.data.datasets[0].data.push(cpu);
+            if (cpuChart.data.labels.length > 20) cpuChart.data.labels.shift();
+            if (cpuChart.data.datasets[0].data.length > 20) cpuChart.data.datasets[0].data.shift();
+            cpuChart.update();
+
+            // Update Memory Chart
+            memoryChart.data.datasets[0].data = [memory, 100 - memory];
+            memoryChart.update();
+
+            // Update Disk Chart
+            diskChart.data.datasets[0].data = [disk, 100 - disk];
+            diskChart.update();
+        }
+
+        // WebSocket connection to Flask backend
+        const socket = io();
+
+        // Connection status
+        socket.on('connect', () => {
+            document.getElementById('connection-status').innerHTML = '<span class="inline-block w-2 h-2 bg-green-500 rounded-full"></span> Connected';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').innerHTML = '<span class="inline-block w-2 h-2 bg-red-500 rounded-full"></span> Disconnected';
+        });
+
+        // Receive system metrics and update charts and UI
+        socket.on('update_metrics', (data) => {
+            console.log("Received system metrics:", data);
+            updateCharts(data.cpu_usage, data.memory_usage, data.disk_usage);
+
+            // Update system info list
+            const systemInfoList = document.getElementById('system-info');
+            systemInfoList.innerHTML = `
+                <li class="list-group-item"><span class="font-semibold">CPU Frequency:</span> ${data.cpu_frequency} MHz</li>
+                <li class="list-group-item"><span class="font-semibold">CPU Cores:</span> ${data.cpu_cores}</li>
+                <li class="list-group-item"><span class="font-semibold">CPU Usage:</span> ${data.cpu_usage}%</li>
+                <li class="list-group-item"><span class="font-semibold">GPU Usage:</span> ${data.gpu_usage}</li>
+                <li class="list-group-item"><span class="font-semibold">GPU Memory Used:</span> ${data.gpu_memory_used}</li>
+                <li class="list-group-item"><span class="font-semibold">GPU Total Memory:</span> ${data.gpu_memory_total}</li>
+                <li class="list-group-item"><span class="font-semibold">Power Usage:</span> ${data.power_usage}%</li>
+                <li class="list-group-item"><span class="font-semibold">Total Memory:</span> ${(data.memory_total / (1024 ** 3)).toFixed(2)} GB</li>
+                <li class="list-group-item"><span class="font-semibold">Total Disk:</span> ${(data.disk_total / (1024 ** 3)).toFixed(2)} GB</li>
+            `;
+        });
+
+        // Receive new network packets and display them
+        socket.on('new_network_request', (request) => {
+            const networkRequestsList = document.getElementById('network-requests');
+            const threatClass = request.blacklisted === "Yes" ? "text-red-600 font-semibold" : "text-green-600";
+            networkRequestsList.innerHTML = `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">${request.ip}</td>
+                    <td class="px-4 py-2">${request.country}</td>
+                    <td class="px-4 py-2">${request.summary}</td>
+                    <td class="px-4 py-2 ${threatClass}">${request.blacklisted}</td>
+                    <td class="px-4 py-2">${request.attacks || 0}</td>
+                </tr>` + networkRequestsList.innerHTML;
+        });
+
+        // Receive new logs and display them
+        socket.on('new_log', (log) => {
+            const logList = document.getElementById('log-list');
+            logList.innerHTML = `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${log.timestamp}</td><td class="px-4 py-2">${log.log}</td></tr>` + logList.innerHTML;
+        });
+
+        // Function to send messages to server
+        function sendMessage() {
+            const message = document.getElementById('chat-input').value;
+            if (message.trim()) {
+                document.getElementById('chat-box').innerHTML += `<div class="mb-2"><strong class="text-blue-600">You:</strong> ${message}</div>`;
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const reply = data.response || "No response received.";
+                    document.getElementById('chat-box').innerHTML += `<div class="mb-2"><strong class="text-green-600">🤖 AI:</strong> ${reply}</div>`;
+                    document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+                })
+                .catch(error => {
+                    console.error("Error with AI request:", error);
+                    document.getElementById('chat-box').innerHTML += `<div class="mb-2"><strong class="text-red-600">AI:</strong> Error processing request.</div>`;
+                });
+                document.getElementById('chat-input').value = '';
+            }
+        }
+
+        // Network requests display
+        let currentNetworkPage = 1;
+
+        function fetchNetworkRequests(page = 1) {
+            fetch(`/network-requests?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    const networkRequestsList = document.getElementById('network-requests');
+                    networkRequestsList.innerHTML = '';
+                    data.forEach(request => {
+                        const threatClass = request.blacklisted === "Yes" ? "text-red-600 font-semibold" : "text-green-600";
+                        networkRequestsList.innerHTML += `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-4 py-2">${request.ip}</td>
+                                <td class="px-4 py-2">${request.country}</td>
+                                <td class="px-4 py-2">${request.summary.length > 50 ? request.summary.substring(0, 50) + '...' : request.summary}</td>
+                                <td class="px-4 py-2 ${threatClass}">${request.blacklisted}</td>
+                                <td class="px-4 py-2">${request.attacks || 0}</td>
+                            </tr>`;
+                    });
+                })
+                .catch(error => console.error("Error fetching network requests:", error));
+        }
+
+        document.getElementById('network-prev').addEventListener('click', () => {
+            if (currentNetworkPage > 1) {
+                currentNetworkPage--;
+                fetchNetworkRequests(currentNetworkPage);
+            }
+        });
+
+        document.getElementById('network-next').addEventListener('click', () => {
+            currentNetworkPage++;
+            fetchNetworkRequests(currentNetworkPage);
+        });
+
+        // Display logs
+        let currentLogsPage = 1;
+
+        function fetchLogs(page = 1) {
+            fetch(`/logs?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    const logList = document.getElementById('log-list');
+                    logList.innerHTML = '';
+                    data.forEach(log => {
+                        logList.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-2">${log.timestamp}</td><td class="px-4 py-2">${log.log}</td></tr>`;
+                    });
+                })
+                .catch(error => console.error("Error fetching logs:", error));
+        }
+
+        document.getElementById('logs-prev').addEventListener('click', () => {
+            if (currentLogsPage > 1) {
+                currentLogsPage--;
+                fetchLogs(currentLogsPage);
+            }
+        });
+
+        document.getElementById('logs-next').addEventListener('click', () => {
+            currentLogsPage++;
+            fetchLogs(currentLogsPage);
+        });
+
+        // System metrics display
+        function fetchSystemInfo() {
+            fetch('/system-info')
+                .then(response => response.json())
+                .then(data => {
+                    const systemInfoList = document.getElementById('system-info');
+                    systemInfoList.innerHTML = '';
+                    if (data.error) {
+                        systemInfoList.innerHTML = `<li class="text-red-600">${data.error}</li>`;
+                    } else {
+                        systemInfoList.innerHTML = `
+                            <li class="py-1"><span class="font-semibold">CPU Frequency:</span> ${data.cpu_frequency} MHz</li>
+                            <li class="py-1"><span class="font-semibold">CPU Cores:</span> ${data.cpu_cores}</li>
+                            <li class="py-1"><span class="font-semibold">CPU Usage:</span> ${data.cpu_usage}%</li>
+                            <li class="py-1"><span class="font-semibold">GPU Usage:</span> ${data.gpu_usage}</li>
+                            <li class="py-1"><span class="font-semibold">GPU Memory Used:</span> ${data.gpu_memory_used}</li>
+                            <li class="py-1"><span class="font-semibold">GPU Total Memory:</span> ${data.gpu_memory_total}</li>
+                            <li class="py-1"><span class="font-semibold">Power Usage:</span> ${data.power_usage}%</li>
+                            <li class="py-1"><span class="font-semibold">Total Memory:</span> ${(data.memory_total / (1024 ** 3)).toFixed(2)} GB</li>
+                            <li class="py-1"><span class="font-semibold">Total Disk:</span> ${(data.disk_total / (1024 ** 3)).toFixed(2)} GB</li>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching system information:", error);
+                    document.getElementById('system-info').innerHTML = `<li class="text-red-600">Error fetching system information</li>`;
+                });
+        }
+
+        function fetchServerMetrics() {
+            fetch('/server-status')
+                .then(response => response.json())
+                .then(data => {
+                    updateCharts(data.cpu_usage, data.memory_usage, data.disk_usage);
+                });
+        }
+
+        // Load initial data
+        fetchSystemInfo();
+        fetchNetworkRequests(currentNetworkPage);
+        fetchLogs(currentLogsPage);
+
+        // Periodic updates for metrics, network, and logs
+        setInterval(fetchServerMetrics, 5000); // Every 5 seconds
+        setInterval(() => fetchNetworkRequests(currentNetworkPage), 10000); // Every 10 seconds
+        setInterval(() => fetchLogs(currentLogsPage), 10000); // Every 10 seconds
+        setInterval(fetchSystemInfo, 10000); // Every 10 seconds
+    </script>
+</body>
+</html>

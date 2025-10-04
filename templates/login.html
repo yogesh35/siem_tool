@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI SIEM Control Panel</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1f2a37 0%, #2b3646 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .login-form {
+            background-color: rgba(43, 54, 70, 0.95);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 400px;
+        }
+        .login-form h2 {
+            margin-bottom: 30px;
+            color: #ffffff;
+            text-align: center;
+            font-weight: 300;
+        }
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border-radius: 8px;
+        }
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: #4f9cf9;
+            color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(79, 156, 249, 0.25);
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4f9cf9 0%, #6366f1 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 156, 249, 0.4);
+        }
+        .form-label {
+            color: #e5e7eb;
+            font-weight: 500;
+        }
+        .security-icon {
+            font-size: 3rem;
+            color: #4f9cf9;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .link-warning {
+            color: #fbbf24 !important;
+            text-decoration: none;
+        }
+        .link-warning:hover {
+            color: #f59e0b !important;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <div class="security-icon">🛡️</div>
+        <h2>AI-Driven SIEM Login</h2>
+        <p class="text-center mb-4 text-muted">Secure Access to Security Operations Center</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="mb-3">
+                <label for="username" class="form-label">
+                    <i class="bi bi-person"></i> Username
+                </label>
+                <input type="text" class="form-control" id="username" name="username" 
+                       placeholder="Enter your username" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">
+                    <i class="bi bi-lock"></i> Password
+                </label>
+                <input type="password" class="form-control" id="password" name="password" 
+                       placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-3">
+                <i class="bi bi-shield-check"></i> Secure Login
+            </button>
+        </form>
+        
+        <div class="text-center">
+            <p class="mb-0">Don't have an account? 
+                <a href="{{ url_for('register') }}" class="link-warning">Register here</a>
+            </p>
+        </div>
+        
+        <div class="mt-4 pt-3 border-top border-secondary">
+            <small class="text-muted d-block text-center">
+                🔒 This system is protected by advanced security protocols<br>
+                Unauthorized access is strictly prohibited
+            </small>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</body>
+</html>
