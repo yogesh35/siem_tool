@@ -1,55 +1,71 @@
-# 🛡️ AI-Driven SIEM Tool
+# 🛡️ AI-Driven SIEM Tool with Real Network Monitoring
 
-![SIEM Dashboard](https://img.shields.io/badge/SIEM-AI%20Powered-blue) ![Python](https://img.shields.io/badge/Python-3.8%2B-brightgreen) ![Flask](https://img.shields.io/badge/Flask-2.3.3-red) ![Groq](https://img.shields.io/badge/Groq-AI%20Powered-purple) ![License](https://img.shields.io/badge/License-CC0%201.0-lightgrey)
+![SIEM Dashboard](https://img.shields.io/badge/SIEM-AI%20Powered-blue) ![Python](https://img.shields.io/badge/Python-3.8%2B-brightgreen) ![Flask](https://img.shields.io/badge/Flask-2.3.3-red) ![Groq](https://img.shields.io/badge/Groq-AI%20Powered-purple) ![Scapy](https://img.shields.io/badge/Scapy-Network%20Analysis-orange) ![License](https://img.shields.io/badge/License-CC0%201.0-lightgrey)
 
-A **simplified, AI-powered Security Information and Event Management (SIEM) system** that provides real-time system monitoring, threat detection, and intelligent security assistance through an intuitive web dashboard.
+A **comprehensive AI-powered Security Information and Event Management (SIEM) system** that provides **real-time network traffic monitoring**, threat detection, and intelligent security assistance through an intuitive web dashboard.
 
-## 🚀 Features
+## 🚀 Key Features
 
-### � **Real-Time System Monitoring**
-- **Live system metrics** (CPU, Memory, Disk usage)
-- **Hardware information** display
-- **Automatic status updates** every 5 seconds
-- **Visual indicators** for system health
+### 🌐 **REAL Network Traffic Monitoring**
+- **Live packet capture** using Scapy library
+- **Captures ALL network traffic** on your system (requires Admin privileges)
+- **Protocol detection** (TCP, UDP, ICMP, DNS, HTTP/HTTPS, SSH, FTP, etc.)
+- **Source and destination IP tracking**
+- **Port-based service identification**
+- **Real-time traffic analysis**
+
+**Two Monitoring Modes:**
+1. **Packet Capture Mode** (Administrator): Captures every network packet in real-time
+2. **Connection Monitoring Mode** (Standard): Monitors active network connections
+
+### 🔍 **Advanced Threat Detection**
+- **IP Geolocation**: Tracks country and city of network connections
+- **Blacklist Checking**: Validates IPs against known threat databases
+- **Suspicious Activity Detection**: Identifies potentially malicious traffic
+- **Attack Pattern Recognition**: Detects unusual port scanning, brute force attempts
+- **Real-time Alerts**: Instant notifications for security threats
 
 ### 🤖 **AI Security Assistant**
-- **Groq API Integration** for intelligent conversations
-- **Context-aware responses** based on current system state
-- **Security guidance** and threat analysis
-- **Interactive chat interface**
+- **Groq API Integration** for intelligent threat analysis
+- **Context-aware responses** based on current network activity
+- **Automated security recommendations**
+- **Interactive chat interface** for security queries
 
-### � **Activity Logging**
-- **System event tracking**
-- **Real-time log updates**
+### 📊 **Real-Time System Monitoring**
+- **Live system metrics** (CPU, Memory, Disk usage)
+- **Network bandwidth tracking**
+- **Hardware information** display
+- **Performance analytics**
+
+### 📝 **Comprehensive Logging**
+- **Network activity logs** with timestamps
+- **Security event tracking**
 - **SQLite database storage**
 - **Searchable log history**
-
-### � **API Testing Tools**
-- **Built-in endpoint testing** functionality
-- **API status monitoring**
-- **Response validation**
-- **Error detection and reporting**
+- **Export capabilities**
 
 ### 🌐 **Web Dashboard**
-- **Responsive design** with Tailwind CSS
-- **Real-time updates** without page refresh
-- **Clean, intuitive interface**
+- **Responsive design** with real-time updates
+- **Network activity visualization**
+- **Threat status indicators**
+- **Interactive charts and graphs**
 - **Cross-platform compatibility**
 
 ## 🛠️ Technologies Used
 
 - **Backend**: Flask, SQLite, psutil
+- **Network Analysis**: Scapy (packet capture and analysis)
 - **Frontend**: HTML5, Tailwind CSS, JavaScript
 - **AI Integration**: Groq API
-- **System Monitoring**: psutil library
+- **Geolocation**: IP Geolocation API
+- **Threat Intelligence**: Blocklist.de API
 - **Database**: SQLite for logging
 
 ## 📋 Requirements
 
 - Python 3.8 or higher
 - Windows/Linux/macOS
-- Internet connection for Groq AI features
-- Administrator/Root privileges (for network packet capture)
+- **Administrator/Root privileges** (for full packet capture)
 - Internet connection (for AI APIs and geolocation)
 
 ## 🔧 Installation
@@ -76,58 +92,102 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Note**: Scapy installation on Windows may require:
+- Npcap driver: https://npcap.com/#download
+- Or WinPcap: https://www.winpcap.org/install/
+
 ### 4. Configure Groq API Key
 
 **Important**: You need a Groq API key for the AI assistant feature.
 
 1. Sign up at [Groq Cloud](https://console.groq.com/)
 2. Get your API key
-3. Open `app.py` and replace the API key on line 9:
+3. Copy `config_template.py` to `api_config.py`:
+```bash
+copy config_template.py api_config.py  # Windows
+cp config_template.py api_config.py    # Linux/macOS
+```
+4. Open `api_config.py` and add your API key:
 ```python
-GROQ_API_KEY = "your_groq_api_key_here"  # Replace with your actual key
+GROQ_API_KEY = "gsk_your_actual_groq_api_key_here"
 ```
 
 ### 5. Run the Application
+
+**For FULL Network Packet Capture (Recommended):**
+
+Windows:
 ```bash
-python app.py
+# Right-click PowerShell → Run as Administrator
+python app_simple.py
+```
+
+Linux/macOS:
+```bash
+sudo python app_simple.py
+```
+
+**For Connection Monitoring (No Admin Required):**
+```bash
+python app_simple.py
 ```
 
 The application will be available at `http://localhost:5000`
 
 ## 🖥️ Usage
 
+### Network Monitoring Features
+
+**What the SIEM Monitors:**
+- ✅ **HTTP/HTTPS Traffic**: Web browsing, API calls
+- ✅ **DNS Queries**: Domain name resolutions
+- ✅ **SSH Connections**: Secure shell access attempts
+- ✅ **FTP Transfers**: File transfer activities
+- ✅ **Email Traffic**: SMTP, POP3, IMAP
+- ✅ **RDP Sessions**: Remote desktop connections
+- ✅ **Custom Protocols**: Any TCP/UDP traffic
+
+**Network Activity Display:**
+- Real-time packet capture with source/destination IPs
+- Protocol identification (TCP, UDP, ICMP)
+- Port-based service detection
+- Geographic location of connections
+- Blacklist status checking
+- Threat severity indicators
+
 ### Dashboard Features
-1. **System Monitoring**: View real-time CPU, memory, and disk usage
-2. **AI Chat**: Ask the AI assistant about security concerns or system status
-3. **Activity Logs**: Monitor system events and activities
-4. **System Information**: View detailed hardware specifications
-5. **API Testing**: Test endpoint functionality directly from the dashboard
+1. **Network Monitor**: View live network traffic and threats
+2. **System Monitoring**: CPU, memory, disk usage metrics
+3. **AI Security Chat**: Ask questions about detected threats
+4. **Activity Logs**: Comprehensive security event logging
+5. **Threat Detection**: Automatic identification of suspicious IPs
 
 ### AI Security Assistant
-- Ask questions like "What's my current system status?"
-- Get security recommendations and threat analysis
-- Receive context-aware responses based on your system metrics
+- Ask: "What suspicious activity have you detected?"
+- Ask: "Is my network secure?"
+- Get real-time threat analysis
+- Receive security recommendations
 
 ### Real-Time Updates
-- System metrics update automatically every 5 seconds
-- Logs refresh every 10 seconds
-- System information updates every 30 seconds
+- Network packets captured instantly (Administrator mode)
+- Active connections monitored every 2 seconds
+- System metrics update every 5 seconds
+- Logs refresh automatically
 
-## � Project Structure
+## 📁 Project Structure
 
 ```
 siem_tool/
-├── app.py                 # Main application file
-├── config.py             # Configuration settings
-├── db_create.py          # Database initialization
-├── ollama_lib.py         # Local AI model support
-├── requirements.txt      # Python dependencies
-├── templates/           # HTML templates (unused in current version)
-│   ├── index.html
-│   ├── login.html
-│   └── register.html
-├── .gitignore           # Git ignore rules
-├── LICENSE              # License file
+├── app_simple.py         # Main SIEM application with real network monitoring
+├── app_groq.py          # Advanced version with TensorFlow ML models
+├── config_template.py   # API configuration template
+├── api_config.py        # Your actual API keys (gitignored)
+├── requirements.txt     # Python dependencies
+├── templates/           # Web dashboard HTML
+│   └── index.html      # Main dashboard interface
+├── system_metrics.db   # SQLite database (auto-created)
+├── .gitignore          # Git ignore rules
+├── LICENSE             # License file
 └── README.md           # This file
 ```
 

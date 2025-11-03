@@ -1,6 +1,9 @@
 # Core Flask dependencies
 Flask==2.3.3
 
+# Network packet capture and analysis
+scapy==2.5.0
+
 # System monitoring
 psutil==5.9.5
 

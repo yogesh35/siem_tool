@@ -9,6 +9,15 @@ import time
 import random
 import ipaddress
 
+# Try to import scapy for real network monitoring
+try:
+    from scapy.all import sniff, IP, TCP, UDP, ICMP, DNS, ARP
+    SCAPY_AVAILABLE = True
+except ImportError:
+    SCAPY_AVAILABLE = False
+    print("⚠️ Scapy not available. Install with: pip install scapy")
+    print("   Real network monitoring will be limited.")
+
 # Groq API Key
 try:
     from api_config import GROQ_API_KEY
@@ -131,7 +140,180 @@ def notify_ai(message):
     except Exception as e:
         save_log(f"AI notification failed: {e}")
 
-# Network monitoring simulation
+# REAL Network Packet Capture
+def packet_callback(packet):
+    """Process captured network packets in real-time"""
+    try:
+        if not packet.haslayer(IP):
+            return
+            
+        ip_layer = packet[IP]
+        src_ip = ip_layer.src
+        dst_ip = ip_layer.dst
+        
+        # Determine protocol and activity type
+        if packet.haslayer(TCP):
+            protocol = "TCP"
+            src_port = packet[TCP].sport
+            dst_port = packet[TCP].dport
+            
+            # Identify common services
+            if dst_port == 80 or src_port == 80:
+                activity = "HTTP Request"
+            elif dst_port == 443 or src_port == 443:
+                activity = "HTTPS Connection"
+            elif dst_port == 22 or src_port == 22:
+                activity = "SSH Connection"
+            elif dst_port == 21 or src_port == 21:
+                activity = "FTP Transfer"
+            elif dst_port == 25 or src_port == 25:
+                activity = "SMTP Email"
+            elif dst_port == 3389 or src_port == 3389:
+                activity = "RDP Connection"
+            else:
+                activity = f"TCP Connection (Port {dst_port})"
+                
+        elif packet.haslayer(UDP):
+            protocol = "UDP"
+            src_port = packet[UDP].sport
+            dst_port = packet[UDP].dport
+            
+            if dst_port == 53 or src_port == 53:
+                activity = "DNS Query"
+            elif dst_port == 123 or src_port == 123:
+                activity = "NTP Sync"
+            else:
+                activity = f"UDP Packet (Port {dst_port})"
+                
+        elif packet.haslayer(ICMP):
+            protocol = "ICMP"
+            activity = "ICMP Ping"
+        else:
+            protocol = "IP"
+            activity = "IP Packet"
+        
+        # Process the source IP (usually the one initiating the connection)
+        ip_to_check = src_ip if not ipaddress.ip_address(src_ip).is_private else dst_ip
+        
+        # Get geolocation
+        country = get_ip_country(ip_to_check)
+        
+        # Check if blacklisted
+        is_blacklisted, attacks, reports = check_ip_blacklisted(ip_to_check)
+        blacklisted = "Yes" if is_blacklisted else "No"
+        
+        # Save to database
+        summary = f"{activity} {src_ip}:{src_port if 'src_port' in locals() else 'N/A'} → {dst_ip}:{dst_port if 'dst_port' in locals() else 'N/A'}"
+        save_network_request(ip_to_check, protocol, country, summary, blacklisted, attacks, reports)
+        
+        # Log activity
+        log_msg = f"📡 {activity}: {src_ip} → {dst_ip} ({country})"
+        if is_blacklisted:
+            log_msg += " ⚠️ THREAT DETECTED"
+            notify_ai(f"Security Alert: {activity} from blacklisted IP {ip_to_check}")
+        
+        save_log(log_msg)
+        
+    except Exception as e:
+        print(f"Packet processing error: {e}")
+
+# Real Network Monitoring Thread
+def monitor_network_traffic():
+    """Capture and analyze real network traffic"""
+    if not SCAPY_AVAILABLE:
+        print("❌ Scapy not available. Falling back to connection monitoring...")
+        monitor_network_connections()
+        return
+    
+    time.sleep(5)  # Wait for app to start
+    print("🔍 Starting REAL network packet capture...")
+    save_log("🔍 Real-time network monitoring started")
+    
+    try:
+        # Capture packets - filter for IP traffic only
+        # store=0 means don't store packets in memory (better performance)
+        # prn=packet_callback processes each packet as it arrives
+        sniff(filter="ip", prn=packet_callback, store=0)
+    except PermissionError:
+        print("❌ Permission denied! Run as Administrator to capture packets.")
+        save_log("⚠️ Network capture requires Administrator privileges")
+        print("   Falling back to connection monitoring...")
+        monitor_network_connections()
+    except Exception as e:
+        print(f"❌ Network monitoring error: {e}")
+        save_log(f"⚠️ Network monitoring error: {e}")
+        print("   Falling back to connection monitoring...")
+        monitor_network_connections()
+
+# Fallback: Monitor Active Network Connections
+def monitor_network_connections():
+    """Monitor active network connections using psutil"""
+    time.sleep(5)
+    print("🔄 Monitoring active network connections...")
+    save_log("🔄 Connection monitoring active (fallback mode)")
+    
+    seen_connections = set()
+    
+    while True:
+        try:
+            connections = psutil.net_connections(kind='inet')
+            
+            for conn in connections:
+                if conn.status == 'ESTABLISHED' and conn.raddr:
+                    remote_ip = conn.raddr.ip
+                    remote_port = conn.raddr.port
+                    local_port = conn.laddr.port if conn.laddr else 0
+                    
+                    # Create unique connection ID
+                    conn_id = f"{remote_ip}:{remote_port}"
+                    
+                    if conn_id not in seen_connections:
+                        seen_connections.add(conn_id)
+                        
+                        # Determine activity type based on port
+                        if remote_port == 80:
+                            activity = "HTTP Connection"
+                        elif remote_port == 443:
+                            activity = "HTTPS Connection"
+                        elif remote_port == 22:
+                            activity = "SSH Connection"
+                        elif remote_port == 53:
+                            activity = "DNS Query"
+                        elif remote_port == 25 or remote_port == 587:
+                            activity = "Email Connection"
+                        else:
+                            activity = f"Network Connection (Port {remote_port})"
+                        
+                        # Get country info
+                        country = get_ip_country(remote_ip)
+                        
+                        # Check blacklist
+                        is_blacklisted, attacks, reports = check_ip_blacklisted(remote_ip)
+                        blacklisted = "Yes" if is_blacklisted else "No"
+                        
+                        # Save to database
+                        summary = f"{activity} to {remote_ip}:{remote_port}"
+                        save_network_request(remote_ip, "Connection", country, summary, 
+                                           blacklisted, attacks, reports)
+                        
+                        # Log
+                        log_msg = f"🌐 {activity}: {remote_ip} ({country})"
+                        if is_blacklisted:
+                            log_msg += " ⚠️ THREAT DETECTED"
+                            notify_ai(f"Security Alert: Connection to blacklisted IP {remote_ip}")
+                        
+                        save_log(log_msg)
+            
+            # Clean up old connections periodically
+            if len(seen_connections) > 1000:
+                seen_connections.clear()
+                
+        except Exception as e:
+            print(f"Connection monitoring error: {e}")
+        
+        time.sleep(2)  # Check every 2 seconds
+
+# Network monitoring simulation (backup)
 def simulate_network_activity():
     time.sleep(5)  # Wait for app to start
     
@@ -317,20 +499,48 @@ Respond as a security AI assistant."""
         return jsonify({"response": "I'm experiencing technical difficulties. System monitoring continues normally."})
 
 if __name__ == '__main__':
-    print("🚀 Starting AI-Driven SIEM with Network Monitoring...")
+    print("🚀 Starting AI-Driven SIEM with REAL Network Monitoring...")
+    print("=" * 60)
     
     if init_db():
         save_log("🚀 SIEM System Started")
-        save_log("🔍 Network monitoring initialized")
+        save_log("🔍 Real-time network monitoring initialized")
         save_log("🤖 AI threat detection active")
         save_log("📊 Real-time dashboard ready")
         
-        # Start background threads
-        threading.Thread(target=simulate_network_activity, daemon=True).start()
-        print("🔄 Network simulation started")
+        # Check if running with admin privileges (required for packet capture)
+        import ctypes
+        is_admin = False
+        try:
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            pass
+        
+        if is_admin:
+            print("✅ Running with Administrator privileges")
+            print("🔍 Real packet capture enabled")
+        else:
+            print("⚠️  Not running as Administrator")
+            print("   - For REAL packet capture: Run as Administrator")
+            print("   - Current mode: Active connection monitoring")
+        
+        print("=" * 60)
+        
+        # Start REAL network monitoring thread
+        threading.Thread(target=monitor_network_traffic, daemon=True).start()
+        print("🔄 Network monitoring thread started")
         
         print("🌐 SIEM Dashboard: http://localhost:5000")
         print("✅ All systems operational!")
+        print("\n📊 Monitoring:")
+        print("   • Real network packets (if Administrator)")
+        print("   • Active network connections")
+        print("   • System performance metrics")
+        print("   • Threat detection & geolocation")
+        print("   • AI-powered security analysis")
+        print("\n⚠️  To capture ALL network packets:")
+        print("   Right-click PowerShell → Run as Administrator")
+        print("   Then run: python app_simple.py\n")
         
         try:
             app.run(debug=False, port=5000, host='127.0.0.1', threaded=True)
