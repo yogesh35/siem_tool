@@ -164,13 +164,18 @@ def notify_ai(message):
         if GROQ_API_KEY != "your_groq_api_key_here":
             payload = {
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [{"role": "user", "content": f"{message}\nProvide a brief security analysis."}]
+                "messages": [{"role": "user", "content": f"{message}\nProvide a brief security analysis in 1-2 sentences."}],
+                "max_tokens": 100,
+                "temperature": 0.7
             }
             response = requests.post("https://api.groq.com/openai/v1/chat/completions", 
                                    headers=GROQ_HEADERS, json=payload, timeout=10)
             if response.status_code == 200:
                 ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response")
-                save_log(f"🤖 AI Analysis: {ai_response}", "AI")
+                # Keep it concise
+                if len(ai_response) > 250:
+                    ai_response = ai_response[:250] + "..."
+                save_log(f"🤖 AI: {ai_response}", "AI")
                 return ai_response
     except Exception as e:
         save_log(f"AI notification failed: {e}", "ERROR")
@@ -189,6 +194,15 @@ def packet_callback(packet):
         protocol = "IP"
         port = 0
         
+        # Skip local/private IPs for cleaner reports
+        try:
+            src_ip_obj = ipaddress.ip_address(src_ip)
+            dst_ip_obj = ipaddress.ip_address(dst_ip)
+            if src_ip_obj.is_private and dst_ip_obj.is_private:
+                return
+        except:
+            pass
+        
         # Determine protocol and activity type
         if packet.haslayer(TCP):
             protocol = "TCP"
@@ -196,19 +210,25 @@ def packet_callback(packet):
             dst_port = packet[TCP].dport
             port = dst_port
             
-            # Identify common services
-            if dst_port == 80 or src_port == 80:
-                activity = "HTTP Request"
-            elif dst_port == 443 or src_port == 443:
-                activity = "HTTPS Connection"
-            elif dst_port == 22 or src_port == 22:
-                activity = "SSH Connection"
-            elif dst_port == 21 or src_port == 21:
-                activity = "FTP Transfer"
-            elif dst_port == 25 or src_port == 25:
-                activity = "SMTP Email"
-            elif dst_port == 3389 or src_port == 3389:
-                activity = "RDP Connection"
+            # Identify common services with better accuracy
+            if dst_port == 80:
+                activity = "HTTP Web Request"
+            elif dst_port == 443:
+                activity = "HTTPS Secure Connection"
+            elif dst_port == 22:
+                activity = "SSH Remote Access"
+            elif dst_port == 21:
+                activity = "FTP File Transfer"
+            elif dst_port == 25:
+                activity = "SMTP Email Send"
+            elif dst_port == 3389:
+                activity = "RDP Remote Desktop"
+            elif dst_port == 3306:
+                activity = "MySQL Database Access"
+            elif dst_port == 5432:
+                activity = "PostgreSQL Database"
+            elif dst_port == 8080 or dst_port == 8000:
+                activity = "Web Application"
             else:
                 activity = f"TCP Connection (Port {dst_port})"
                 
@@ -218,21 +238,44 @@ def packet_callback(packet):
             dst_port = packet[UDP].dport
             port = dst_port
             
+            # Better UDP service identification
             if dst_port == 53 or src_port == 53:
-                activity = "DNS Query"
+                activity = "DNS Name Resolution"
             elif dst_port == 123 or src_port == 123:
-                activity = "NTP Sync"
+                activity = "NTP Time Sync"
+            elif dst_port == 67 or dst_port == 68:
+                activity = "DHCP Network Config"
+            elif dst_port == 161 or dst_port == 162:
+                activity = "SNMP Network Monitor"
+            elif dst_port == 1900:
+                activity = "SSDP Device Discovery"
+            elif dst_port == 5353:
+                activity = "mDNS Local Discovery"
             else:
                 activity = f"UDP Packet (Port {dst_port})"
                 
         elif packet.haslayer(ICMP):
             protocol = "ICMP"
-            activity = "ICMP Ping"
+            activity = "ICMP Ping/Network Test"
         else:
             activity = "IP Packet"
         
-        # Process the source IP
-        ip_to_check = src_ip if not ipaddress.ip_address(src_ip).is_private else dst_ip
+        # Process the external IP (skip private IPs)
+        try:
+            src_ip_obj = ipaddress.ip_address(src_ip)
+            dst_ip_obj = ipaddress.ip_address(dst_ip)
+            
+            # Prefer external IP for geolocation
+            if not src_ip_obj.is_private:
+                ip_to_check = src_ip
+            elif not dst_ip_obj.is_private:
+                ip_to_check = dst_ip
+            else:
+                # Both are private, skip detailed logging
+                current_metrics['packets_captured'] += 1
+                return
+        except:
+            ip_to_check = dst_ip
         
         # Get geolocation
         country = get_ip_country(ip_to_check)
@@ -305,23 +348,42 @@ def monitor_network_connections():
                     remote_port = conn.raddr.port
                     local_port = conn.laddr.port if conn.laddr else 0
                     
+                    # Skip private/local IPs for cleaner reports
+                    try:
+                        remote_ip_obj = ipaddress.ip_address(remote_ip)
+                        if remote_ip_obj.is_private or remote_ip_obj.is_loopback:
+                            continue
+                    except:
+                        continue
+                    
                     # Create unique connection ID
                     conn_id = f"{remote_ip}:{remote_port}"
                     
                     if conn_id not in seen_connections:
                         seen_connections.add(conn_id)
+                        current_metrics['packets_captured'] += 1
                         
-                        # Determine activity type based on port
+                        # Better activity type identification
                         if remote_port == 80:
-                            activity = "HTTP Connection"
+                            activity = "HTTP Web Request"
                         elif remote_port == 443:
-                            activity = "HTTPS Connection"
+                            activity = "HTTPS Secure Connection"
                         elif remote_port == 22:
-                            activity = "SSH Connection"
+                            activity = "SSH Remote Access"
                         elif remote_port == 53:
-                            activity = "DNS Query"
+                            activity = "DNS Name Resolution"
                         elif remote_port == 25 or remote_port == 587:
-                            activity = "Email Connection"
+                            activity = "SMTP Email Send"
+                        elif remote_port == 993 or remote_port == 995:
+                            activity = "Email Receive (IMAP/POP3)"
+                        elif remote_port == 3306:
+                            activity = "MySQL Database"
+                        elif remote_port == 5432:
+                            activity = "PostgreSQL Database"
+                        elif remote_port == 3389:
+                            activity = "RDP Remote Desktop"
+                        elif remote_port == 8080 or remote_port == 8000:
+                            activity = "Web Application"
                         else:
                             activity = f"Network Connection (Port {remote_port})"
                         
@@ -332,8 +394,8 @@ def monitor_network_connections():
                         is_blacklisted, attacks, reports = check_ip_blacklisted(remote_ip)
                         blacklisted = "Yes" if is_blacklisted else "No"
                         
-                        # Save to database
-                        summary = f"{activity} to {remote_ip}:{remote_port}"
+                        # Save to database with better summary
+                        summary = f"{activity} to {remote_ip}"
                         save_network_request(remote_ip, "Connection", country, summary, 
                                            blacklisted, attacks, reports, "TCP", remote_port)
                         
@@ -566,30 +628,31 @@ def chat():
         
         # Get recent threats
         conn = sqlite3.connect('system_metrics.db')
-        recent_threats = conn.execute("SELECT ip, threat_type FROM threats ORDER BY id DESC LIMIT 5").fetchall()
-        recent_network = conn.execute("SELECT ip, country, blacklisted FROM network_requests ORDER BY id DESC LIMIT 5").fetchall()
+        recent_threats = conn.execute("SELECT ip, threat_type FROM threats ORDER BY id DESC LIMIT 3").fetchall()
+        recent_network = conn.execute("SELECT ip, country, blacklisted FROM network_requests ORDER BY id DESC LIMIT 3").fetchall()
         conn.close()
         
-        threat_summary = f"{current_metrics['threats_detected']} threats detected"
+        threat_summary = f"{current_metrics['threats_detected']} threats"
         if recent_threats:
-            threat_summary += f", latest: {', '.join([f'{t[1]} from {t[0]}' for t in recent_threats[:3]])}"
+            threat_summary += f" (latest: {recent_threats[0][1]} from {recent_threats[0][0]})"
         
-        context = f"""User Question: {user_message}
+        # Build concise context
+        context = f"""You are a cybersecurity AI assistant. Answer in 2-3 sentences maximum. Be direct and concise.
 
-Current System Status:
-- CPU: {cpu}%, Memory: {memory}%
-- Active Network Connections: {current_metrics['active_connections']}
-- Packets Captured: {current_metrics['packets_captured']}
-- Threats Detected: {threat_summary}
+Question: {user_message}
 
-Recent Network Activity: {[f"{net[0]} from {net[1]} (Blacklisted: {net[2]})" for net in recent_network]}
-
-You are a cybersecurity AI assistant. Provide helpful, accurate security analysis and recommendations."""
+System: CPU {cpu}%, Memory {memory}%, {current_metrics['active_connections']} connections, {current_metrics['packets_captured']} packets
+Security: {threat_summary}"""
+        
+        if recent_network and any(net[2] == 'Yes' for net in recent_network):
+            context += f"\nRecent threat: {[net[0] for net in recent_network if net[2] == 'Yes'][0]}"
         
         if GROQ_API_KEY != "your_groq_api_key_here":
             payload = {
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [{"role": "user", "content": context}]
+                "messages": [{"role": "user", "content": context}],
+                "max_tokens": 150,
+                "temperature": 0.7
             }
             
             try:
@@ -598,19 +661,22 @@ You are a cybersecurity AI assistant. Provide helpful, accurate security analysi
                 
                 if response.status_code == 200:
                     ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response")
+                    # Truncate if still too long
+                    if len(ai_response) > 500:
+                        ai_response = ai_response[:500] + "..."
                 else:
-                    ai_response = f"System status: CPU {cpu}%, Memory {memory}%. {threat_summary}. Network monitoring active with {current_metrics['active_connections']} active connections."
+                    ai_response = f"System: CPU {cpu}%, Memory {memory}%. {threat_summary}. {current_metrics['active_connections']} active connections monitored."
                     
             except Exception as e:
-                ai_response = f"I'm monitoring your system (CPU: {cpu}%, Memory: {memory}%). {threat_summary}. Network security is active. Error: {str(e)}"
+                ai_response = f"System monitoring active - CPU: {cpu}%, Memory: {memory}%. {threat_summary}."
         else:
-            ai_response = f"API key not configured. System status: CPU {cpu}%, Memory {memory}%. {threat_summary}."
+            ai_response = f"API key not configured. Status: CPU {cpu}%, Memory {memory}%. {threat_summary}."
         
         save_log(f"💬 Chat: {user_message[:50]}...", "INFO")
         return jsonify({"response": ai_response})
         
     except Exception as e:
-        return jsonify({"response": f"I'm experiencing technical difficulties: {str(e)}"})
+        return jsonify({"response": f"Error: {str(e)}"})
 
 if __name__ == '__main__':
     print("🚀 Starting Complete AI-Driven SIEM with Live Metrics...")

@@ -24,6 +24,23 @@
         .threat-high { color: #ef4444; }
         .threat-medium { color: #f59e0b; }
         .threat-low { color: #10b981; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        .filter-btn.active {
+            background: #2563eb !important;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
@@ -113,29 +130,87 @@
         </div>
 
         <!-- Main Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             
-            <!-- System Charts -->
+            <!-- System Performance Charts -->
             <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
                 <h3 class="text-xl font-bold mb-4 flex items-center">
-                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                     </svg>
-                    System Metrics
+                    System Performance Trends
                 </h3>
-                <canvas id="metricsChart" height="200"></canvas>
+                <div class="h-80">
+                    <canvas id="metricsChart"></canvas>
+                </div>
             </div>
 
-            <!-- Network Activity -->
-            <div class="bg-gray-800 rounded-lg p-6 shadow-xl lg:col-span-2">
+            <!-- Network Protocol Distribution -->
+            <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
                 <h3 class="text-xl font-bold mb-4 flex items-center">
-                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                    <svg class="w-6 h-6 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
                     </svg>
-                    Recent Network Activity
+                    Network Protocol Distribution
                 </h3>
-                <div id="network-activity" class="space-y-2 max-h-96 overflow-y-auto">
+                <div class="h-80 flex items-center justify-center">
+                    <canvas id="protocolChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Analysis Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            
+            <!-- Network Activity Stream -->
+            <div class="bg-gray-800 rounded-lg p-6 shadow-xl lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                        </svg>
+                        Live Network Activity Stream
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button onclick="filterNetwork('all')" id="filter-all" class="filter-btn bg-blue-600 px-3 py-1 rounded text-sm">All</button>
+                        <button onclick="filterNetwork('threats')" id="filter-threats" class="filter-btn bg-gray-700 px-3 py-1 rounded text-sm">Threats</button>
+                        <button onclick="filterNetwork('tcp')" id="filter-tcp" class="filter-btn bg-gray-700 px-3 py-1 rounded text-sm">TCP</button>
+                        <button onclick="filterNetwork('udp')" id="filter-udp" class="filter-btn bg-gray-700 px-3 py-1 rounded text-sm">UDP</button>
+                    </div>
+                </div>
+                <div id="network-activity" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                     <p class="text-gray-400">Loading network activity...</p>
+                </div>
+            </div>
+
+            <!-- Top IPs and Statistics -->
+            <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    Network Statistics
+                </h3>
+                <div class="space-y-4">
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h4 class="text-sm text-gray-400 mb-2">Top Source IPs</h4>
+                        <div id="top-ips" class="space-y-2 text-sm">
+                            <p class="text-gray-500">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h4 class="text-sm text-gray-400 mb-2">Top Ports</h4>
+                        <div id="top-ports" class="space-y-2 text-sm">
+                            <p class="text-gray-500">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h4 class="text-sm text-gray-400 mb-2">Geographic Distribution</h4>
+                        <div id="geo-stats" class="space-y-2 text-sm">
+                            <p class="text-gray-500">Loading...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -203,7 +278,12 @@
         setInterval(updateTime, 1000);
         updateTime();
 
-        // Chart setup
+        // Global data storage
+        let allNetworkData = [];
+        let currentFilter = 'all';
+        let protocolStats = {};
+
+        // System Metrics Chart
         const ctx = document.getElementById('metricsChart').getContext('2d');
         const metricsChart = new Chart(ctx, {
             type: 'line',
@@ -213,44 +293,121 @@
                     {
                         label: 'CPU %',
                         data: [],
-                        borderColor: 'rgb(59, 130, 246)',
+                        borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     },
                     {
                         label: 'Memory %',
                         data: [],
-                        borderColor: 'rgb(168, 85, 247)',
+                        borderColor: '#a855f7',
                         backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                        tension: 0.4
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     },
                     {
                         label: 'Disk %',
                         data: [],
-                        borderColor: 'rgb(34, 197, 94)',
+                        borderColor: '#22c55e',
                         backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        tension: 0.4
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
                 plugins: {
                     legend: {
-                        labels: { color: 'white' }
+                        labels: { 
+                            color: 'white',
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         max: 100,
-                        ticks: { color: 'white' },
+                        ticks: { 
+                            color: 'white',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
                         grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     },
                     x: {
-                        ticks: { color: 'white' },
+                        ticks: { 
+                            color: 'white',
+                            maxTicksLimit: 10
+                        },
                         grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+
+        // Protocol Distribution Chart
+        const protocolCtx = document.getElementById('protocolChart').getContext('2d');
+        const protocolChart = new Chart(protocolCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['TCP', 'UDP', 'ICMP', 'Other'],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        '#3b82f6',
+                        '#a855f7',
+                        '#22c55e',
+                        '#f59e0b'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#1f2937'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { 
+                            color: 'white',
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
                     }
                 }
             }
@@ -290,7 +447,70 @@
                     metricsChart.data.datasets[1].data.push(data.memory_usage);
                     metricsChart.data.datasets[2].data.push(data.disk_usage);
                     metricsChart.update('none');
-                });
+                })
+                .catch(error => console.error('Error fetching metrics:', error));
+        }
+
+        // Filter network activity
+        function filterNetwork(type) {
+            currentFilter = type;
+            
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            });
+            document.getElementById('filter-' + type).classList.add('active', 'bg-blue-600');
+            document.getElementById('filter-' + type).classList.remove('bg-gray-700');
+            
+            // Filter and display
+            displayNetworkActivity(allNetworkData);
+        }
+
+        // Display network activity with filters
+        function displayNetworkActivity(data) {
+            const container = document.getElementById('network-activity');
+            
+            let filtered = data;
+            if (currentFilter === 'threats') {
+                filtered = data.filter(req => req.blacklisted === 'Yes');
+            } else if (currentFilter === 'tcp') {
+                filtered = data.filter(req => req.protocol === 'TCP' || req.protocol === 'Connection');
+            } else if (currentFilter === 'udp') {
+                filtered = data.filter(req => req.protocol === 'UDP');
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">No network activity matching filter</p>';
+                return;
+            }
+            
+            container.innerHTML = filtered.slice(0, 20).map(req => {
+                const threatClass = req.blacklisted === 'Yes' ? 'bg-red-900 border-red-500' : 'bg-gray-700 border-gray-600';
+                const threatBadge = req.blacklisted === 'Yes' ? '<span class="text-red-400 text-xs font-bold">⚠️ THREAT</span>' : '';
+                const protocolColor = req.protocol === 'TCP' || req.protocol === 'Connection' ? 'bg-blue-900' : 
+                                     req.protocol === 'UDP' ? 'bg-purple-900' : 'bg-green-900';
+                
+                return `
+                    <div class="border ${threatClass} rounded-lg p-3 hover:bg-opacity-80 transition">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <span class="font-mono text-sm text-cyan-400 font-bold">${req.ip}</span>
+                                <span class="text-xs text-gray-400 ml-2">📍 ${req.country}</span>
+                                ${threatBadge}
+                            </div>
+                            <span class="text-xs text-gray-500">${req.timestamp.split(' ')[1]}</span>
+                        </div>
+                        <p class="text-sm text-gray-300 mb-2">${req.summary}</p>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="${protocolColor} px-2 py-1 rounded font-semibold">${req.protocol}</span>
+                            ${req.port > 0 ? `<span class="bg-indigo-900 px-2 py-1 rounded">Port ${req.port}</span>` : ''}
+                            ${req.attacks > 0 ? `<span class="bg-red-800 px-2 py-1 rounded font-bold">${req.attacks} attacks</span>` : ''}
+                            ${req.reports > 0 ? `<span class="bg-orange-900 px-2 py-1 rounded">${req.reports} reports</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Fetch network activity
@@ -298,35 +518,100 @@
             fetch('/network-requests')
                 .then(response => response.json())
                 .then(data => {
-                    const container = document.getElementById('network-activity');
-                    if (data.length === 0) {
-                        container.innerHTML = '<p class="text-gray-400">No network activity yet</p>';
-                        return;
-                    }
+                    allNetworkData = data;
+                    displayNetworkActivity(data);
                     
-                    container.innerHTML = data.slice(0, 10).map(req => {
-                        const threatClass = req.blacklisted === 'Yes' ? 'bg-red-900 border-red-500' : 'bg-gray-700 border-gray-600';
-                        const threatBadge = req.blacklisted === 'Yes' ? '<span class="text-red-400 text-xs">⚠️ THREAT</span>' : '';
-                        return `
-                            <div class="border ${threatClass} rounded-lg p-3 hover:bg-gray-700 transition">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex-1">
-                                        <span class="font-mono text-sm text-blue-400">${req.ip}</span>
-                                        <span class="text-xs text-gray-400 ml-2">${req.country}</span>
-                                        ${threatBadge}
-                                    </div>
-                                    <span class="text-xs text-gray-500">${req.timestamp}</span>
-                                </div>
-                                <p class="text-sm text-gray-300 mt-1">${req.summary}</p>
-                                <div class="flex space-x-2 mt-2 text-xs">
-                                    <span class="bg-blue-900 px-2 py-1 rounded">${req.protocol}</span>
-                                    ${req.port > 0 ? `<span class="bg-purple-900 px-2 py-1 rounded">Port ${req.port}</span>` : ''}
-                                    ${req.attacks > 0 ? `<span class="bg-red-900 px-2 py-1 rounded">${req.attacks} attacks</span>` : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                });
+                    // Update protocol chart
+                    updateProtocolChart(data);
+                    
+                    // Update statistics
+                    updateNetworkStats(data);
+                })
+                .catch(error => console.error('Error fetching network activity:', error));
+        }
+
+        // Update protocol distribution chart
+        function updateProtocolChart(data) {
+            const protocolCounts = { TCP: 0, UDP: 0, ICMP: 0, Other: 0 };
+            
+            data.forEach(req => {
+                if (req.protocol === 'TCP' || req.protocol === 'Connection') {
+                    protocolCounts.TCP++;
+                } else if (req.protocol === 'UDP') {
+                    protocolCounts.UDP++;
+                } else if (req.protocol === 'ICMP') {
+                    protocolCounts.ICMP++;
+                } else {
+                    protocolCounts.Other++;
+                }
+            });
+            
+            protocolChart.data.datasets[0].data = [
+                protocolCounts.TCP,
+                protocolCounts.UDP,
+                protocolCounts.ICMP,
+                protocolCounts.Other
+            ];
+            protocolChart.update('none');
+        }
+
+        // Update network statistics
+        function updateNetworkStats(data) {
+            // Top IPs
+            const ipCounts = {};
+            data.forEach(req => {
+                ipCounts[req.ip] = (ipCounts[req.ip] || 0) + 1;
+            });
+            
+            const topIPs = Object.entries(ipCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            
+            document.getElementById('top-ips').innerHTML = topIPs.map(([ip, count]) => `
+                <div class="flex justify-between items-center">
+                    <span class="font-mono text-xs text-blue-400">${ip}</span>
+                    <span class="text-gray-400">${count}</span>
+                </div>
+            `).join('') || '<p class="text-gray-500">No data</p>';
+            
+            // Top Ports
+            const portCounts = {};
+            data.forEach(req => {
+                if (req.port > 0) {
+                    portCounts[req.port] = (portCounts[req.port] || 0) + 1;
+                }
+            });
+            
+            const topPorts = Object.entries(portCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            
+            document.getElementById('top-ports').innerHTML = topPorts.map(([port, count]) => `
+                <div class="flex justify-between items-center">
+                    <span class="text-purple-400">${port}</span>
+                    <span class="text-gray-400">${count}</span>
+                </div>
+            `).join('') || '<p class="text-gray-500">No data</p>';
+            
+            // Geographic Distribution
+            const countryCounts = {};
+            data.forEach(req => {
+                if (req.country && req.country !== 'Unknown') {
+                    const country = req.country.split(',')[0];
+                    countryCounts[country] = (countryCounts[country] || 0) + 1;
+                }
+            });
+            
+            const topCountries = Object.entries(countryCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            
+            document.getElementById('geo-stats').innerHTML = topCountries.map(([country, count]) => `
+                <div class="flex justify-between items-center">
+                    <span class="text-green-400">${country}</span>
+                    <span class="text-gray-400">${count}</span>
+                </div>
+            `).join('') || '<p class="text-gray-500">No data</p>';
         }
 
         // Fetch threats
